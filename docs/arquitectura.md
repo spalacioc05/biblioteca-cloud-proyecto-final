@@ -1,72 +1,30 @@
-# Arquitectura — Laboratorio 3 (Libros)
+# Arquitectura — Biblioteca Cloud
 
-## Descripción
+![Diagrama](arquitectura/biblioteca-cloud-arquitectura.png)
 
-La API es completamente serverless. El cliente (Postman) llama a un endpoint HTTP
-expuesto por API Gateway (HTTP API), que enruta la petición a la función Lambda
-correspondiente a la operación solicitada. Cada Lambda lee o escribe en la misma
-tabla de DynamoDB usando el AWS SDK v3, y todas las funciones envían sus logs de
-ejecución a CloudWatch Logs.
+Fuentes del diagrama: [SVG](arquitectura/biblioteca-cloud-arquitectura.svg) · [draw.io editable](arquitectura/biblioteca-cloud-arquitectura.drawio) · [generador](arquitectura/generar_diagrama.py) (`python docs/arquitectura/generar_diagrama.py`).
 
-No hay servidores que administrar: API Gateway, Lambda y DynamoDB escalan de
-forma automática y solo se paga por el uso real (DynamoDB en modo
-`PAY_PER_REQUEST` y Lambda por invocación).
+## Flujos
 
-## Diagrama
+1. **Carga del sitio.** El navegador pide el sitio por HTTPS a CloudFront. Si el contenido no está en la caché, CloudFront lo lee del bucket S3 privado firmando la petición con OAC (SigV4). Las rutas inexistentes devuelven `index.html`, porque la aplicación es una SPA.
+2. **Operaciones CRUD.** La aplicación React llama con `fetch` a la HTTP API de API Gateway. API Gateway revisa el CORS y el límite de peticiones, e invoca la Lambda que corresponde a la ruta. La Lambda asume su propio rol IAM y ejecuta una sola operación sobre DynamoDB (`PutItem`, `Scan`, `GetItem`, `UpdateItem` o `DeleteItem`). El resultado vuelve al navegador como JSON.
+3. **Demostración IaaS (opcional).** Cuando la instancia EC2 está encendida, sirve por HTTP una página de estado. El tráfico entra a la subred pública por el Internet Gateway. Este flujo es independiente de la aplicación.
 
-```mermaid
-flowchart TB
-    Cliente["Postman / Cliente"]
-    APIGW["API Gateway HTTP API"]
+API Gateway, las Lambdas y DynamoDB envían sus logs y métricas a CloudWatch, que concentra el dashboard y la alarma de errores 5xx.
 
-    subgraph Lambdas["AWS Lambda (5 funciones)"]
-        crear["crear\nPOST /libros"]
-        listar["listar\nGET /libros"]
-        obtener["obtener\nGET /libros/{id}"]
-        actualizar["actualizar\nPUT /libros/{id}"]
-        eliminar["eliminar\nDELETE /libros/{id}"]
-    end
+## Por qué cada servicio
 
-    DynamoDB[("DynamoDB\nTabla libros")]
-    CloudWatch["CloudWatch Logs"]
+| Servicio | Justificación |
+| --- | --- |
+| S3 | Almacena archivos estáticos de forma duradera y barata. Es el servicio que pide el enunciado para el frontend. |
+| CloudFront | Da HTTPS sin comprar un dominio, cachea en el borde y permite mantener el bucket privado con OAC. |
+| API Gateway (HTTP API) | Cuesta menos y tiene menos latencia que una REST API. Trae CORS y límite de peticiones integrados. |
+| Lambda | Cómputo por demanda: solo se paga por invocación. Se reutilizan las 5 funciones del Laboratorio 3. |
+| DynamoDB on-demand | Base NoSQL sin servidor que cobra por petición; el modelo `libro` cabe en una tabla con clave `id`. Es la opción que recomendó el docente para soluciones no relacionales. |
+| IAM | Un rol por función, con una sola acción, sigue el principio de mínimo privilegio. |
+| CloudWatch | Logs, métricas, dashboard y alarma, sin instalar agentes. |
+| VPC + EC2 | Cubren los requisitos de IaaS y red del enunciado. Quedan aislados del backend porque la aplicación no los necesita; meter las Lambdas en la VPC exigiría un NAT Gateway (≈ USD 32 al mes) o endpoints, sin ningún beneficio. |
 
-    Cliente --> APIGW
-    APIGW --> crear
-    APIGW --> listar
-    APIGW --> obtener
-    APIGW --> actualizar
-    APIGW --> eliminar
+## Decisión: las Lambdas no están en la VPC
 
-    crear --> DynamoDB
-    listar --> DynamoDB
-    obtener --> DynamoDB
-    actualizar --> DynamoDB
-    eliminar --> DynamoDB
-
-    crear -.-> CloudWatch
-    listar -.-> CloudWatch
-    obtener -.-> CloudWatch
-    actualizar -.-> CloudWatch
-    eliminar -.-> CloudWatch
-```
-
-## Componentes
-
-| Componente | Rol |
-|---|---|
-| API Gateway (HTTP API) | Expone las 5 rutas públicas y enruta cada método/ruta a su Lambda |
-| AWS Lambda (5 funciones) | Una función independiente por operación CRUD, sin servidor que mantener |
-| Amazon DynamoDB | Tabla `libros`, partition key `id` (String), modo `PAY_PER_REQUEST` |
-| CloudWatch Logs | Recibe automáticamente los logs de cada invocación de Lambda |
-| CloudFormation | Generado por Serverless Framework a partir de `serverless.yml`; define y versiona toda la infraestructura |
-
-## Por qué una Lambda por operación
-
-Separar `crear`, `listar`, `obtener`, `actualizar` y `eliminar` en funciones
-independientes permite:
-
-- Aplicar permisos IAM distintos por función si en el futuro se necesitara
-  (principio de mínimo privilegio más granular).
-- Que un error o un despliegue de una operación no afecte a las demás.
-- Que cada función tenga un tamaño de paquete y un tiempo de arranque en frío
-  más pequeños, en lugar de cargar toda la lógica del CRUD en una sola función.
+DynamoDB es un servicio público de AWS. Una Lambda dentro de una VPC sin salida a Internet necesitaría un NAT Gateway o un VPC endpoint para alcanzarlo. Eso aumentaría el costo y la complejidad sin mejorar la seguridad de este caso, porque los datos son públicos y el acceso ya está controlado por IAM. Por eso la VPC y la EC2 se presentan como un componente IaaS independiente, que se administra por SSM y se mantiene detenido fuera de las demostraciones.

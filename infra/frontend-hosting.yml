@@ -1,0 +1,123 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >-
+  Biblioteca Cloud - Hosting del frontend estatico (React + Vite).
+  Bucket S3 privado (Block Public Access) servido unicamente por CloudFront
+  mediante Origin Access Control (OAC), con HTTPS y soporte para SPA.
+
+Parameters:
+  Stage:
+    Type: String
+    Default: dev
+    AllowedPattern: "[a-z0-9-]+"
+    Description: Etapa del despliegue (dev, prod...).
+
+Resources:
+  FrontendBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "biblioteca-cloud-frontend-${AWS::AccountId}-${Stage}"
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerEnforced
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      Tags:
+        - { Key: Proyecto, Value: biblioteca-cloud }
+        - { Key: Etapa, Value: proyecto-final }
+        - { Key: Curso, Value: udea-2026-2 }
+
+  FrontendOAC:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name: !Sub "biblioteca-cloud-oac-${Stage}"
+        Description: Acceso de CloudFront al bucket privado del frontend
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+  FrontendDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Comment: !Sub "Biblioteca Cloud - frontend (${Stage})"
+        Enabled: true
+        HttpVersion: http2and3
+        IPV6Enabled: true
+        PriceClass: PriceClass_100
+        DefaultRootObject: index.html
+        Origins:
+          - Id: s3-frontend
+            DomainName: !GetAtt FrontendBucket.RegionalDomainName
+            OriginAccessControlId: !GetAtt FrontendOAC.Id
+            S3OriginConfig:
+              OriginAccessIdentity: ""
+        DefaultCacheBehavior:
+          TargetOriginId: s3-frontend
+          ViewerProtocolPolicy: redirect-to-https
+          AllowedMethods: [GET, HEAD]
+          CachedMethods: [GET, HEAD]
+          Compress: true
+          # Politicas administradas por AWS: CachingOptimized y SecurityHeadersPolicy
+          CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
+          ResponseHeadersPolicyId: 67f7725c-6f97-4210-82d7-5512b31e9d03
+        # SPA: rutas inexistentes devuelven index.html
+        CustomErrorResponses:
+          - ErrorCode: 403
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+            ErrorCachingMinTTL: 10
+          - ErrorCode: 404
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+            ErrorCachingMinTTL: 10
+      Tags:
+        - { Key: Proyecto, Value: biblioteca-cloud }
+        - { Key: Etapa, Value: proyecto-final }
+        - { Key: Curso, Value: udea-2026-2 }
+
+  # Solo la distribucion de CloudFront puede leer objetos; se rechaza HTTP sin TLS.
+  FrontendBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref FrontendBucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: PermitirSoloCloudFrontOAC
+            Effect: Allow
+            Principal:
+              Service: cloudfront.amazonaws.com
+            Action: s3:GetObject
+            Resource: !Sub "${FrontendBucket.Arn}/*"
+            Condition:
+              StringEquals:
+                AWS:SourceArn: !Sub "arn:aws:cloudfront::${AWS::AccountId}:distribution/${FrontendDistribution}"
+          - Sid: DenegarTransporteInseguro
+            Effect: Deny
+            Principal: "*"
+            Action: "s3:*"
+            Resource:
+              - !GetAtt FrontendBucket.Arn
+              - !Sub "${FrontendBucket.Arn}/*"
+            Condition:
+              Bool:
+                aws:SecureTransport: "false"
+
+Outputs:
+  BucketName:
+    Description: Bucket privado que almacena el build del frontend
+    Value: !Ref FrontendBucket
+  DistributionId:
+    Description: Id de la distribucion (para invalidaciones)
+    Value: !Ref FrontendDistribution
+  SiteUrl:
+    Description: URL publica HTTPS del frontend
+    Value: !Sub "https://${FrontendDistribution.DomainName}"

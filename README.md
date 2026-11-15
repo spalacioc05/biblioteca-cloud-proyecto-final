@@ -1,271 +1,151 @@
-# Laboratorio 3 — CRUD Serverless de Libros
+# Biblioteca Cloud
 
-Cloud Computing · Universidad de Antioquia · 2026-2
+Proyecto final de **Cloud Computing (Universidad de Antioquia, 2026-2)**. Es una aplicación web para gestionar un catálogo de libros, desplegada en AWS con:
 
-## Integrantes
+- un frontend estático (React + Vite) en S3, servido por CloudFront;
+- un backend serverless: API Gateway, cinco funciones Lambda y DynamoDB;
+- un componente IaaS: una VPC propia con subred pública y una instancia EC2;
+- seguridad con IAM de mínimo privilegio, observabilidad en CloudWatch y estimación de costos.
 
-- Santiago Palacio (spalacioc05)
-- _(completar con los demás integrantes del grupo)_
+**Docente:** Juan Pablo Arango
+**Integrantes:** Santiago Palacio Cárdenas · Juan Esteban Mosquera · María Paula Mosquera
 
-## Descripción
+| Recurso | URL |
+| --- | --- |
+| Aplicación web (CloudFront, HTTPS) | https://d2eefcjglj9a9z.cloudfront.net |
+| API REST (API Gateway HTTP API) | https://zjl2czbrvk.execute-api.us-east-1.amazonaws.com/libros |
+| Repositorio | https://github.com/spalacioc05/biblioteca-cloud-proyecto-final |
 
-Este laboratorio implementa una API REST completamente serverless para
-administrar una colección de **libros**. La API permite crear, listar,
-consultar, actualizar y eliminar libros, usando exclusivamente servicios
-administrados de AWS: no hay ningún servidor que aprovisionar ni mantener.
+> La instancia EC2 de demostración se mantiene **detenida** para no generar costos. Se inicia con `scripts/ec2.ps1 -Accion iniciar` cuando se va a mostrar.
 
-Toda la infraestructura (funciones, rutas HTTP, tabla y permisos) está
-definida como código en un único archivo `serverless.yml`, siguiendo el
-enfoque de Infraestructura como Código (IaC) con Serverless Framework v4.
+![Arquitectura de Biblioteca Cloud](docs/arquitectura/biblioteca-cloud-arquitectura.png)
 
-## Arquitectura
+## Qué hace la aplicación
 
-```
-Cliente / Postman
-        |
-        v
-API Gateway HTTP API
-        |
-        v
-   AWS Lambda (5 funciones: crear, listar, obtener, actualizar, eliminar)
-        |
-        v
-   Amazon DynamoDB (tabla "libros")
-```
+- Muestra el catálogo en tarjetas, con un resumen de libros totales, disponibles y prestados.
+- Busca por título o autor, sin importar mayúsculas ni tildes.
+- Filtra por género y por disponibilidad.
+- Registra libros con validación en el formulario y también en el backend.
+- Muestra el detalle de un libro, consultado con `GET /libros/{id}`.
+- Edita un libro o lo marca como prestado o disponible con un clic.
+- Elimina un libro después de pedir confirmación.
+- Muestra estados de carga, vacío y error, y avisos de éxito o error. Es responsive y tiene en cuenta la accesibilidad (diálogos nativos, etiquetas y regiones `aria-live`).
 
-Cada Lambda envía sus logs de ejecución a **Amazon CloudWatch**. El detalle
-del diagrama (en Mermaid) está en [`docs/arquitectura.md`](docs/arquitectura.md).
+Todos los datos se leen y se escriben en DynamoDB a través de la API; la aplicación no usa datos simulados.
 
-## Entidad: Libro
+## Del Laboratorio 3 al proyecto final
 
-| Atributo | Tipo | Obligatorio | Descripción |
-|---|---|---|---|
-| `id` | string (UUID) | generado automáticamente | Partition key de la tabla |
-| `titulo` | string | sí | Título del libro |
-| `autor` | string | sí | Autor del libro |
-| `genero` | string | sí | Género literario |
-| `paginas` | integer (> 0) | sí | Número de páginas |
-| `disponible` | boolean | sí | Si el libro está disponible para préstamo |
-| `creadoEn` | string (ISO 8601) | generado automáticamente | Fecha de creación del registro |
+El punto de partida fue el repositorio [`lab3-serverless-libros`](https://github.com/spalacioc05/lab3-serverless-libros), una API CRUD de libros que se probaba con Postman. Ese repositorio y su stack (`lab3-serverless-libros-dev`) **no se modificaron**: este proyecto usa servicio, tabla, roles y stacks con nombres nuevos.
 
-## Endpoints
+| Se reutilizó del Laboratorio 3 | Se construyó para el proyecto final |
+| --- | --- |
+| Las 5 funciones CRUD y el modelo `libro` | Frontend React + Vite completo, en español y responsive |
+| Serverless Framework + HTTP API + DynamoDB | S3 privado + CloudFront + OAC (IaC en CloudFormation) |
+| | VPC, subred pública, IGW, tabla de rutas, SG y EC2 (IaC) |
+| | Un rol IAM por función con una sola acción de DynamoDB |
+| | CORS restringido al dominio real y límite de peticiones en la API |
+| | Validaciones con límites, control de id, tamaño de cuerpo y Scan paginado |
+| | Logs JSON estructurados, dashboard y alarma en CloudWatch |
+| | 11 pruebas unitarias y 15 pruebas de humo contra AWS |
 
-| Método | Ruta | Función Lambda | Respuesta esperada |
-|---|---|---|---|
-| POST | `/libros` | `crear` | 201 con el libro creado · 400 si el body es inválido |
-| GET | `/libros` | `listar` | 200 con el arreglo de libros |
-| GET | `/libros/{id}` | `obtener` | 200 con el libro · 404 si no existe |
-| PUT | `/libros/{id}` | `actualizar` | 200 con el libro actualizado · 400 · 404 |
-| DELETE | `/libros/{id}` | `eliminar` | 200 con mensaje de confirmación · 404 |
-
-## Códigos HTTP utilizados
-
-| Código | Cuándo se usa |
-|---|---|
-| 200 | Consulta, actualización o eliminación exitosa |
-| 201 | Creación exitosa |
-| 400 | Body ausente, JSON inválido, o campos obligatorios faltantes/incorrectos |
-| 404 | El `id` solicitado no existe en la tabla (obtener, actualizar, eliminar) |
-| 500 | Error inesperado (por ejemplo, un fallo de DynamoDB no relacionado con la validación) |
-
-## Estructura del proyecto
+## Estructura del repositorio
 
 ```
-.
-├── handler.js                                  # Las 5 funciones Lambda
-├── serverless.yml                               # Infraestructura como código
-├── package.json
-├── package-lock.json
-├── .gitignore
-├── README.md
-├── postman/
-│   └── Lab3-Serverless-Libros.postman_collection.json
-└── docs/
-    └── arquitectura.md
+backend/              API serverless (Serverless Framework v4)
+  serverless.yml      Lambda, API Gateway, DynamoDB, roles IAM, dashboard y alarma
+  src/                handler.js, validacion.js, http.js, db.js
+  tests/              pruebas unitarias (node:test)
+  iam/, monitoring/   política de confianza y definición del dashboard
+  postman/            colección heredada del Laboratorio 3
+frontend/             aplicación React + Vite
+infra/
+  frontend-hosting.yml  S3 privado + CloudFront + OAC (CloudFormation)
+  red-ec2.yml           VPC + subred pública + IGW + rutas + SG + EC2 (CloudFormation)
+scripts/
+  deploy-all.ps1      despliegue completo en orden
+  deploy-frontend.ps1 build con la URL real de la API, publicación en S3 e invalidación de CloudFront
+  ec2.ps1             iniciar, detener o consultar la EC2
+  seed.mjs            carga libros de demostración por la API
+  smoke-test.mjs      pruebas de humo contra la infraestructura real
+docs/                 arquitectura (diagrama SVG/PNG/draw.io)
 ```
 
 ## Requisitos
 
-- [Node.js](https://nodejs.org/) 20 o superior (probado con Node 24)
-- [Serverless Framework v4](https://www.serverless.com/framework/docs/getting-started) (`npm install -g serverless`)
-- [AWS CLI v2](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html)
-- Cuenta de AWS con permisos sobre Lambda, API Gateway, DynamoDB, IAM,
-  CloudFormation y CloudWatch Logs
-- Cuenta en [app.serverless.com](https://app.serverless.com) (Serverless Framework v4
-  exige inicio de sesión incluso para comandos locales como `serverless print`)
-- [Postman](https://www.postman.com/) para probar la API
+- Node.js 20 o superior (probado con 24) y npm
+- AWS CLI v2 autenticada (`aws login` o un perfil) en `us-east-1`
+- Serverless Framework v4 (`npm i -g serverless`), con sesión iniciada
+- PowerShell 7 para los scripts
 
-## Instalación
+## Despliegue
 
-```bash
-git clone https://github.com/spalacioc05/lab3-serverless-libros.git
-cd lab3-serverless-libros
+```powershell
+# Todo en orden: hosting -> backend -> frontend (y la red IaaS con -ConRed)
+pwsh ./scripts/deploy-all.ps1 -Stage dev -ConRed
+
+# Cargar libros de demostración (obras publicadas, sin datos personales)
+node scripts/seed.mjs https://<api-id>.execute-api.us-east-1.amazonaws.com
+```
+
+El backend lee la URL de CloudFront desde las salidas del stack `biblioteca-cloud-frontend-<stage>` para configurar CORS. Por eso el stack de hosting se despliega primero.
+
+### Desarrollo local
+
+```powershell
+cd frontend
+copy .env.example .env.local   # pon la URL de la API en VITE_API_URL
 npm install
+npm run dev                    # http://localhost:5173 (origen permitido en CORS)
 ```
 
-Esto instala:
+## Pruebas
 
-- `@aws-sdk/client-dynamodb` y `@aws-sdk/lib-dynamodb` (AWS SDK v3, dependencias de producción)
-- `serverless-offline` (dependencia de desarrollo, para pruebas locales)
-
-## `serverless.yml`, en breve
-
-- **`service`**: `lab3-serverless-libros`.
-- **`provider`**: runtime `nodejs24.x`, arquitectura `arm64` (más económica),
-  región `us-east-1`, stage por defecto `dev`.
-- **Variable de entorno**: `LIBROS_TABLE`, con el nombre de la tabla
-  dependiente del stage (`${self:service}-libros-${sls:stage}`), para que el
-  código nunca tenga el nombre de la tabla escrito a mano.
-- **IAM de mínimo privilegio**: el rol de las Lambdas solo puede ejecutar
-  `PutItem`, `GetItem`, `Scan`, `UpdateItem` y `DeleteItem`, y únicamente
-  sobre el ARN de la tabla `LibrosTable` creada en este mismo stack
-  (`Fn::GetAtt: [LibrosTable, Arn]`). No se otorga `dynamodb:*` ni `Resource: "*"`.
-- **`functions`**: las cinco funciones (`crear`, `listar`, `obtener`,
-  `actualizar`, `eliminar`), cada una con su propio evento `httpApi`.
-- **`resources`**: la tabla DynamoDB en sintaxis CloudFormation, con
-  `BillingMode: PAY_PER_REQUEST` (pago por uso, sin capacidad reservada) y
-  `id` como partition key de tipo `String`.
-- **`plugins`**: `serverless-offline`.
-
-> `org` y `app` quedan comentados en el archivo. Antes de ejecutar
-> `serverless deploy` deben descomentarse y ajustarse a la organización real
-> de la cuenta en app.serverless.com.
-
-## `handler.js`, en breve
-
-- El `DynamoDBClient` y el `DynamoDBDocumentClient` se crean **una sola vez,
-  fuera de los handlers**, para reutilizar la conexión entre invocaciones
-  (buena práctica de rendimiento en Lambda).
-- `respuesta(statusCode, body)`: helper para construir siempre una respuesta
-  HTTP en el mismo formato (JSON + header `Content-Type`).
-- `leerBody(event)`: hace `JSON.parse` del body de forma segura; si el JSON
-  es inválido devuelve `null` en lugar de lanzar una excepción.
-- `validarLibro(data)`: valida `titulo`, `autor`, `genero`, `paginas` y
-  `disponible`; devuelve un mensaje de error o `null` si todo es válido.
-- `crear`: valida, genera `id` (`crypto.randomUUID()`) y `creadoEn`, guarda
-  con `PutCommand` y responde `201`.
-- `listar`: `ScanCommand` sobre toda la tabla, responde `200` con el arreglo.
-- `obtener`: `GetCommand` por `id`; `404` si no existe.
-- `actualizar`: valida el body igual que `crear`, usa `UpdateCommand` con
-  `UpdateExpression`, `ExpressionAttributeValues`, `ReturnValues: "ALL_NEW"`
-  y `ConditionExpression: attribute_exists(id)`. Si el `id` no existe,
-  DynamoDB lanza `ConditionalCheckFailedException`, que se captura para
-  responder `404` **en lugar de crear un registro nuevo por accidente**.
-- `eliminar`: `DeleteCommand` con la misma `ConditionExpression`, para
-  responder `404` si el `id` no existía en lugar de un `200` engañoso.
-
-## Configurar credenciales de AWS (antes del despliegue)
-
-Este paso todavía no se ha realizado en este proyecto. Cuando se vaya a
-desplegar en AWS:
-
-```bash
-aws configure
+```powershell
+cd backend; npm test                       # 11 pruebas unitarias (DynamoDB simulado)
+cd frontend; npm run lint; npm run build
+node scripts/smoke-test.mjs <URL API> <URL CloudFront> <bucket>   # 15 pruebas contra AWS
 ```
 
-Y proporcionar `AWS Access Key ID`, `AWS Secret Access Key`, región
-(`us-east-1`) y formato de salida. Alternativamente, se puede conectar un
-proveedor de AWS desde el dashboard de Serverless
-([app.serverless.com](https://app.serverless.com)).
+Las pruebas de humo cubren: el frontend por HTTPS, el fallback de la SPA, el bloqueo del acceso directo a S3 (403), el CRUD completo con códigos 201, 200, 400 y 404, y CORS (origen permitido y origen rechazado). El libro que crean se elimina al terminar.
 
-## Cómo desplegar (fase AWS, todavía no ejecutado en este repositorio)
+## API
 
-```bash
-serverless deploy
+| Método | Ruta | Respuestas |
+| --- | --- | --- |
+| POST | `/libros` | 201 creado · 400 validación · 413 cuerpo > 10 KB |
+| GET | `/libros` | 200 lista ordenada por fecha de creación |
+| GET | `/libros/{id}` | 200 · 400 id inválido · 404 |
+| PUT | `/libros/{id}` | 200 · 400 · 404 |
+| DELETE | `/libros/{id}` | 200 · 400 · 404 |
+
+Cuerpo: `{ "titulo": "…", "autor": "…", "genero": "…", "paginas": 471, "disponible": true }`. El backend agrega `id` (UUID), `creadoEn` y `actualizadoEn`.
+
+## Seguridad
+
+- **Bucket privado:** Block Public Access activado. Solo la distribución de CloudFront puede leer objetos (OAC con condición `AWS:SourceArn`), y se rechaza cualquier acceso sin TLS.
+- **IAM de mínimo privilegio:** cada Lambda tiene su propio rol con **una sola** acción de DynamoDB sobre la tabla del proyecto, y solo puede escribir en su propio grupo de logs. La EC2 tiene un rol con la única política `AmazonSSMManagedInstanceCore`.
+- **Red:** el grupo de seguridad solo permite HTTP 80 de entrada y el puerto 22 está cerrado. La administración se hace con SSM Session Manager, sin llaves SSH. La instancia exige IMDSv2 y su disco EBS está cifrado.
+- **API:** CORS limitado al dominio de CloudFront y a `localhost:5173`, límite de 10 peticiones por segundo con ráfagas de 20, y validación estricta de entradas.
+- **Limitación conocida:** la API **no tiene autenticación**. Cualquiera que conozca la URL puede invocarla. CORS solo restringe qué páginas web pueden leer las respuestas en un navegador; no es un control de acceso. Esta limitación es aceptable porque el catálogo contiene solo datos públicos de demostración. Para producción, el siguiente paso sería Amazon Cognito con un autorizador JWT en API Gateway.
+- El frontend no contiene secretos: `VITE_API_URL` es una URL pública.
+
+## Observabilidad
+
+- Logs JSON estructurados por operación, con retención de 14 días.
+- Dashboard `biblioteca-cloud-dev`: peticiones, errores 4xx y 5xx y latencia de API Gateway; invocaciones, errores y duración por Lambda; unidades consumidas de DynamoDB.
+- Alarma `biblioteca-cloud-dev-api-5xx`, sin acciones de notificación, para detectar errores del servidor.
+
+## Costos
+
+Según la [AWS Pricing Calculator](https://calculator.aws), el escenario de demostración cuesta **≈ USD 1,10 al mes**. Supuestos: 10 000 solicitudes al mes, 1 GB servido por CloudFront y la EC2 encendida 20 horas al mes. El mayor costo es el disco EBS de 8 GB (USD 0,64), que se cobra aunque la instancia esté detenida. A esto se suman unos USD 0,10 por la IPv4 pública mientras la EC2 está encendida (USD 0,005 por hora). No es gratis, pero con el uso de demostración el costo es mínimo.
+
+## Limpieza
+
+```powershell
+cd backend; serverless remove --stage dev
+aws cloudformation delete-stack --stack-name biblioteca-cloud-red-dev
+aws s3 rm s3://biblioteca-cloud-frontend-<cuenta>-dev --recursive
+aws cloudformation delete-stack --stack-name biblioteca-cloud-frontend-dev
 ```
 
-Al finalizar, la terminal imprime la URL base de API Gateway. Esa URL debe
-reemplazar la variable `baseUrl` en la colección de Postman (sección
-"Producción (AWS)").
-
-## Cómo ejecutar en modo local
-
-```bash
-serverless offline
-```
-
-Esto levanta la API en `http://localhost:3000`. Como el código necesita una
-tabla real de DynamoDB, este modo debe ejecutarse **después** de haber hecho
-`serverless deploy` al menos una vez, para que `LIBROS_TABLE` apunte a una
-tabla que realmente existe en AWS.
-
-## Ejemplos de requests
-
-**Crear libro** — `POST /libros`
-
-```json
-{
-  "titulo": "Cien años de soledad",
-  "autor": "Gabriel García Márquez",
-  "genero": "Realismo mágico",
-  "paginas": 471,
-  "disponible": true
-}
-```
-
-**Actualizar libro** — `PUT /libros/{id}`
-
-```json
-{
-  "titulo": "Cien años de soledad (edición conmemorativa)",
-  "autor": "Gabriel García Márquez",
-  "genero": "Realismo mágico",
-  "paginas": 496,
-  "disponible": false
-}
-```
-
-## Casos de error esperados
-
-- **400 (body inválido)**: enviar un `POST /libros` sin `titulo`, con
-  `paginas` negativo, o sin `disponible`. Ejemplo:
-
-  ```json
-  {
-    "titulo": "",
-    "paginas": -5
-  }
-  ```
-
-- **404 (registro inexistente)**: hacer `GET`, `PUT` o `DELETE` sobre
-  `/libros/00000000-0000-0000-0000-000000000000` (un `id` que no existe en
-  la tabla).
-
-Ambos casos ya están incluidos como requests en la colección de Postman.
-
-## Importar la colección de Postman
-
-1. Abrir Postman → **Import**.
-2. Seleccionar el archivo `postman/Lab3-Serverless-Libros.postman_collection.json`.
-3. La colección trae dos carpetas: **Producción (AWS)** y **Local
-   (serverless-offline)**.
-4. Para producción: editar la variable de colección `baseUrl` y pegar la URL
-   que entregó `serverless deploy`.
-5. Para local: usar las requests de la carpeta "Local", que ya apuntan a
-   `http://localhost:3000`.
-6. La variable `libroId` se completa automáticamente al ejecutar "Crear
-   libro" (gracias a un script de test que guarda el `id` de la respuesta).
-
-## Cómo revisar los recursos en AWS (después del despliegue)
-
-- **Lambda**: consola de AWS → Lambda → deben existir las 5 funciones
-  (`lab3-serverless-libros-dev-crear`, `-listar`, `-obtener`, `-actualizar`,
-  `-eliminar`), cada una con la variable de entorno `LIBROS_TABLE`.
-- **API Gateway**: consola de AWS → API Gateway → la HTTP API debe tener las
-  5 rutas configuradas.
-- **DynamoDB**: consola de AWS → DynamoDB → tabla `lab3-serverless-libros-libros-dev`,
-  con `id` como partition key. La opción "Explorar elementos" permite ver los
-  registros creados desde Postman.
-- **CloudWatch**: consola de AWS → CloudWatch → Log groups → revisar los
-  logs de al menos una de las funciones para confirmar las invocaciones.
-
-## Limpieza de recursos
-
-```bash
-serverless remove
-```
-
-> **Ejecutar únicamente después de que el docente haya realizado la revisión
-> o sustentación del laboratorio.** Este comando elimina la pila de
-> CloudFormation completa (Lambdas, API Gateway y la tabla DynamoDB con
-> todos sus datos).
+Estos comandos **solo** afectan los recursos de Biblioteca Cloud; el stack del Laboratorio 3 se conserva.

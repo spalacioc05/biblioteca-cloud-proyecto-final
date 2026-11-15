@@ -1,0 +1,135 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1640" height="1040" viewBox="0 0 1640 1040" font-family="Arial, Helvetica, sans-serif">
+<defs><marker id="f" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0,0 L10,4 L0,8 z" fill="#232F3E"/></marker><marker id="fr" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0,0 L10,4 L0,8 z" fill="#DD344C"/></marker><marker id="fm" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0,0 L10,4 L0,8 z" fill="#E7157B"/></marker></defs>
+<rect width="1640" height="1040" fill="#ffffff"/>
+<text x="30" y="52" font-size="28" font-weight="bold" fill="#232F3E">Biblioteca Cloud — Arquitectura en AWS</text>
+<text x="30" y="78" font-size="15" fill="#545B64">Proyecto final Cloud Computing · Universidad de Antioquia 2026-2</text>
+<rect x="260" y="95" width="1350" height="880" rx="10" fill="#232F3E" fill-opacity="0.04" stroke="#232F3E" stroke-width="2" stroke-dasharray="8 6"/>
+<text x="274" y="119" font-size="15" font-weight="bold" fill="#232F3E">AWS Cloud · us-east-1 (Norte de Virginia)</text>
+<rect x="650" y="315" width="310" height="270" rx="10" fill="#ED7100" fill-opacity="0.04" stroke="#ED7100" stroke-width="2"/>
+<text x="664" y="339" font-size="15" font-weight="bold" fill="#ED7100">AWS Lambda · Node.js 24 · arm64</text>
+<rect x="650" y="625" width="940" height="330" rx="10" fill="#8C4FFF" fill-opacity="0.04" stroke="#8C4FFF" stroke-width="2" stroke-dasharray="8 6"/>
+<text x="664" y="649" font-size="15" font-weight="bold" fill="#8C4FFF">VPC biblioteca-cloud-vpc-dev · 10.20.0.0/16</text>
+<rect x="875" y="665" width="690" height="240" rx="10" fill="#7AA116" fill-opacity="0.04" stroke="#7AA116" stroke-width="2"/>
+<text x="889" y="689" font-size="15" font-weight="bold" fill="#7AA116">Subred pública 10.20.1.0/24 · us-east-1a</text>
+<rect x="30" y="360" width="190" height="120" rx="10" fill="#ffffff" stroke="#232F3E" stroke-width="2.5"/>
+<rect x="30" y="360" width="8" height="120" rx="4" fill="#232F3E"/>
+<text x="50" y="388" font-size="17" font-weight="bold" fill="#232F3E">Usuario</text>
+<text x="50" y="412" font-size="14" fill="#3B4550">Navegador web</text>
+<text x="50" y="432" font-size="14" fill="#3B4550">React SPA en español</text>
+<rect x="30" y="690" width="190" height="240" rx="10" fill="#ffffff" stroke="#232F3E" stroke-width="2.5"/>
+<rect x="30" y="690" width="8" height="240" rx="4" fill="#232F3E"/>
+<text x="50" y="718" font-size="17" font-weight="bold" fill="#232F3E">GitHub + IaC</text>
+<text x="50" y="742" font-size="14" fill="#3B4550">backend/serverless.yml</text>
+<text x="50" y="762" font-size="14" fill="#3B4550">infra/frontend-hosting.yml</text>
+<text x="50" y="782" font-size="14" fill="#3B4550">infra/red-ec2.yml</text>
+<text x="50" y="802" font-size="14" fill="#3B4550">scripts/deploy-all.ps1</text>
+<text x="50" y="822" font-size="14" fill="#3B4550"></text>
+<text x="50" y="842" font-size="14" fill="#3B4550">4 stacks de</text>
+<text x="50" y="862" font-size="14" fill="#3B4550">CloudFormation</text>
+<rect x="330" y="140" width="240" height="105" rx="10" fill="#ffffff" stroke="#8C4FFF" stroke-width="2.5"/>
+<rect x="330" y="140" width="8" height="105" rx="4" fill="#8C4FFF"/>
+<text x="350" y="168" font-size="17" font-weight="bold" fill="#232F3E">Amazon CloudFront</text>
+<text x="350" y="192" font-size="14" fill="#3B4550">HTTPS · caché · compresión</text>
+<text x="350" y="212" font-size="14" fill="#3B4550">Cabeceras de seguridad</text>
+<text x="350" y="232" font-size="14" fill="#3B4550">SPA: 403/404 → index.html</text>
+<rect x="690" y="140" width="250" height="105" rx="10" fill="#ffffff" stroke="#7AA116" stroke-width="2.5"/>
+<rect x="690" y="140" width="8" height="105" rx="4" fill="#7AA116"/>
+<text x="710" y="168" font-size="17" font-weight="bold" fill="#232F3E">Amazon S3 (privado)</text>
+<text x="710" y="192" font-size="14" fill="#3B4550">Build React + Vite</text>
+<text x="710" y="212" font-size="14" fill="#3B4550">Block Public Access</text>
+<text x="710" y="232" font-size="14" fill="#3B4550">Cifrado SSE-S3</text>
+<rect x="330" y="380" width="240" height="115" rx="10" fill="#ffffff" stroke="#E7157B" stroke-width="2.5"/>
+<rect x="330" y="380" width="8" height="115" rx="4" fill="#E7157B"/>
+<text x="350" y="408" font-size="17" font-weight="bold" fill="#232F3E">Amazon API Gateway</text>
+<text x="350" y="432" font-size="14" fill="#3B4550">HTTP API · 5 rutas /libros</text>
+<text x="350" y="452" font-size="14" fill="#3B4550">CORS solo dominio CloudFront</text>
+<text x="350" y="472" font-size="14" fill="#3B4550">Throttling 10 rps · ráfaga 20</text>
+<rect x="1040" y="390" width="240" height="105" rx="10" fill="#ffffff" stroke="#C925D1" stroke-width="2.5"/>
+<rect x="1040" y="390" width="8" height="105" rx="4" fill="#C925D1"/>
+<text x="1060" y="418" font-size="17" font-weight="bold" fill="#232F3E">Amazon DynamoDB</text>
+<text x="1060" y="442" font-size="14" fill="#3B4550">biblioteca-cloud-libros-dev</text>
+<text x="1060" y="462" font-size="14" fill="#3B4550">On-demand · PK: id</text>
+<text x="1060" y="482" font-size="14" fill="#3B4550"></text>
+<rect x="1040" y="255" width="240" height="95" rx="10" fill="#ffffff" stroke="#DD344C" stroke-width="2.5"/>
+<rect x="1040" y="255" width="8" height="95" rx="4" fill="#DD344C"/>
+<text x="1060" y="283" font-size="17" font-weight="bold" fill="#232F3E">AWS IAM</text>
+<text x="1060" y="307" font-size="14" fill="#3B4550">5 roles, uno por función</text>
+<text x="1060" y="327" font-size="14" fill="#3B4550">1 acción DynamoDB por rol</text>
+<rect x="1350" y="300" width="240" height="260" rx="10" fill="#ffffff" stroke="#E7157B" stroke-width="2.5"/>
+<rect x="1350" y="300" width="8" height="260" rx="4" fill="#E7157B"/>
+<text x="1370" y="328" font-size="17" font-weight="bold" fill="#232F3E">Amazon CloudWatch</text>
+<text x="1370" y="352" font-size="14" fill="#3B4550">Logs JSON (retención 14 d)</text>
+<text x="1370" y="372" font-size="14" fill="#3B4550">Métricas Lambda, API,</text>
+<text x="1370" y="392" font-size="14" fill="#3B4550">DynamoDB</text>
+<text x="1370" y="412" font-size="14" fill="#3B4550">Dashboard</text>
+<text x="1370" y="432" font-size="14" fill="#3B4550">biblioteca-cloud-dev</text>
+<text x="1370" y="452" font-size="14" fill="#3B4550">Alarma API 5xx</text>
+<rect x="670" y="690" width="170" height="70" rx="10" fill="#ffffff" stroke="#8C4FFF" stroke-width="2.5"/>
+<rect x="670" y="690" width="8" height="70" rx="4" fill="#8C4FFF"/>
+<text x="690" y="718" font-size="17" font-weight="bold" fill="#232F3E">Internet Gateway</text>
+<rect x="670" y="785" width="170" height="115" rx="10" fill="#ffffff" stroke="#8C4FFF" stroke-width="2.5"/>
+<rect x="670" y="785" width="8" height="115" rx="4" fill="#8C4FFF"/>
+<text x="690" y="813" font-size="17" font-weight="bold" fill="#232F3E">Tabla de rutas</text>
+<text x="690" y="837" font-size="14" fill="#3B4550">0.0.0.0/0 → IGW</text>
+<text x="690" y="857" font-size="14" fill="#3B4550">10.20.0.0/16 → local</text>
+<rect x="900" y="725" width="260" height="150" rx="10" fill="#ffffff" stroke="#ED7100" stroke-width="2.5"/>
+<rect x="900" y="725" width="8" height="150" rx="4" fill="#ED7100"/>
+<text x="920" y="753" font-size="17" font-weight="bold" fill="#232F3E">Amazon EC2 t4g.micro</text>
+<text x="920" y="777" font-size="14" fill="#3B4550">Amazon Linux 2023 · nginx</text>
+<text x="920" y="797" font-size="14" fill="#3B4550">Página de estado del nodo</text>
+<text x="920" y="817" font-size="14" fill="#3B4550">Rol IAM: solo SSM</text>
+<text x="920" y="837" font-size="14" fill="#3B4550">Detenida fuera de demos</text>
+<rect x="1190" y="725" width="240" height="150" rx="10" fill="#ffffff" stroke="#DD344C" stroke-width="2.5"/>
+<rect x="1190" y="725" width="8" height="150" rx="4" fill="#DD344C"/>
+<text x="1210" y="753" font-size="17" font-weight="bold" fill="#232F3E">Security Group</text>
+<text x="1210" y="777" font-size="14" fill="#3B4550">Entrada: HTTP 80</text>
+<text x="1210" y="797" font-size="14" fill="#3B4550">SSH (22) cerrado</text>
+<text x="1210" y="817" font-size="14" fill="#3B4550">Admin: SSM Session Manager</text>
+<rect x="670" y="355" width="270" height="36" rx="18" fill="#FFF4E8" stroke="#ED7100" stroke-width="1.5"/>
+<text x="688" y="378" font-size="14" font-weight="bold" fill="#232F3E">crear</text>
+<text x="925" y="378" font-size="13" fill="#545B64" text-anchor="end">POST /libros</text>
+<rect x="670" y="399" width="270" height="36" rx="18" fill="#FFF4E8" stroke="#ED7100" stroke-width="1.5"/>
+<text x="688" y="422" font-size="14" font-weight="bold" fill="#232F3E">listar</text>
+<text x="925" y="422" font-size="13" fill="#545B64" text-anchor="end">GET /libros</text>
+<rect x="670" y="443" width="270" height="36" rx="18" fill="#FFF4E8" stroke="#ED7100" stroke-width="1.5"/>
+<text x="688" y="466" font-size="14" font-weight="bold" fill="#232F3E">obtener</text>
+<text x="925" y="466" font-size="13" fill="#545B64" text-anchor="end">GET /libros/{id}</text>
+<rect x="670" y="487" width="270" height="36" rx="18" fill="#FFF4E8" stroke="#ED7100" stroke-width="1.5"/>
+<text x="688" y="510" font-size="14" font-weight="bold" fill="#232F3E">actualizar</text>
+<text x="925" y="510" font-size="13" fill="#545B64" text-anchor="end">PUT /libros/{id}</text>
+<rect x="670" y="531" width="270" height="36" rx="18" fill="#FFF4E8" stroke="#ED7100" stroke-width="1.5"/>
+<text x="688" y="554" font-size="14" font-weight="bold" fill="#232F3E">eliminar</text>
+<text x="925" y="554" font-size="13" fill="#545B64" text-anchor="end">DELETE /libros/{id}</text>
+<path d="M220,390 L285,390 L285,192 L330,192" fill="none" stroke="#232F3E" stroke-width="2" marker-end="url(#f)"/>
+<rect x="252.7" y="286" width="78.60000000000001" height="20" rx="4" fill="#ffffff"/>
+<text x="292" y="300" font-size="13" font-weight="bold" fill="#232F3E" text-anchor="middle">1 · HTTPS</text>
+<path d="M570,192 L690,192" fill="none" stroke="#232F3E" stroke-width="2" marker-end="url(#f)"/>
+<rect x="583.3" y="168" width="93.4" height="20" rx="4" fill="#ffffff"/>
+<text x="630" y="182" font-size="13" font-weight="bold" fill="#232F3E" text-anchor="middle">OAC (SigV4)</text>
+<path d="M220,437 L330,437" fill="none" stroke="#232F3E" stroke-width="2" marker-end="url(#f)"/>
+<rect x="217.2" y="413" width="115.60000000000001" height="20" rx="4" fill="#ffffff"/>
+<text x="275" y="427" font-size="13" font-weight="bold" fill="#232F3E" text-anchor="middle">2 · fetch JSON</text>
+<path d="M570,437 L650,437" fill="none" stroke="#232F3E" stroke-width="2" marker-end="url(#f)"/>
+<rect x="581.8" y="413" width="56.400000000000006" height="20" rx="4" fill="#ffffff"/>
+<text x="610" y="427" font-size="13" font-weight="bold" fill="#232F3E" text-anchor="middle">invoca</text>
+<path d="M960,442 L1040,442" fill="none" stroke="#232F3E" stroke-width="2" marker-end="url(#f)"/>
+<rect x="971.8" y="418" width="56.400000000000006" height="20" rx="4" fill="#ffffff"/>
+<text x="1000" y="432" font-size="13" font-weight="bold" fill="#232F3E" text-anchor="middle">SDK v3</text>
+<path d="M960,345 L1040,302" fill="none" stroke="#DD344C" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#fr)"/>
+<rect x="960.7" y="298" width="78.60000000000001" height="20" rx="4" fill="#ffffff"/>
+<text x="1000" y="312" font-size="13" font-weight="bold" fill="#DD344C" text-anchor="middle">asume rol</text>
+<path d="M1280,442 L1350,442" fill="none" stroke="#E7157B" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#fm)"/>
+<path d="M450,495 L450,600 L1470,600 L1470,560" fill="none" stroke="#E7157B" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#fm)"/>
+<rect x="1098.5" y="580" width="123.0" height="20" rx="4" fill="#ffffff"/>
+<text x="1160" y="594" font-size="13" font-weight="bold" fill="#E7157B" text-anchor="middle">logs y métricas</text>
+<path d="M805,585 L805,600" fill="none" stroke="#E7157B" stroke-width="2" stroke-dasharray="7 5"/>
+<path d="M125,480 L125,655 L610,655 L610,725 L670,725" fill="none" stroke="#232F3E" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#f)"/>
+<rect x="266.7" y="636" width="226.60000000000002" height="20" rx="4" fill="#ffffff"/>
+<text x="380" y="650" font-size="13" font-weight="bold" fill="#232F3E" text-anchor="middle">3 · HTTP demo IaaS (opcional)</text>
+<path d="M840,725 L900,760" fill="none" stroke="#232F3E" stroke-width="2" marker-end="url(#f)"/>
+<path d="M220,810 L260,810" fill="none" stroke="#232F3E" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#f)"/>
+<rect x="200.7" y="786" width="78.60000000000001" height="20" rx="4" fill="#ffffff"/>
+<text x="240" y="800" font-size="13" font-weight="bold" fill="#232F3E" text-anchor="middle">despliega</text>
+<text x="665" y="940" font-size="13" font-style="italic" fill="#545B64">Componente IaaS independiente: la VPC y la EC2 no participan en el flujo de la aplicación (las Lambdas no están dentro de la VPC).</text>
+<text x="30" y="1020" font-size="13" fill="#545B64">Flujos: 1 carga del sitio estático · 2 operaciones CRUD (formulario → API → Lambda → DynamoDB → respuesta) · 3 página de estado de la EC2 · líneas discontinuas: permisos, observabilidad y despliegue.</text>
+</svg>

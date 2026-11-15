@@ -1,0 +1,241 @@
+# Biblioteca Cloud - Backend serverless (Proyecto Final Cloud Computing UdeA 2026-2)
+# Evolucion del Laboratorio 3 (lab3-serverless-libros). Se usan identificadores
+# NUEVOS (service/app/tabla/stack) para no tocar la infraestructura del laboratorio.
+org: spalacioc05
+app: biblioteca-cloud
+service: biblioteca-cloud
+
+provider:
+  name: aws
+  runtime: nodejs24.x
+  architecture: arm64
+  region: us-east-1
+  stage: ${opt:stage, 'dev'}
+  memorySize: 256
+  timeout: 6
+  logRetentionInDays: 14
+  environment:
+    LIBROS_TABLE: ${self:custom.tablaLibros}
+  stackTags:
+    Proyecto: biblioteca-cloud
+    Etapa: proyecto-final
+    Curso: udea-2026-2
+  tags:
+    Proyecto: biblioteca-cloud
+  httpApi:
+    # CORS: solo el dominio real del frontend (CloudFront) y el servidor local
+    # de desarrollo de Vite. CORS NO es autenticacion: solo restringe que
+    # paginas web pueden leer las respuestas desde un navegador.
+    cors:
+      allowedOrigins:
+        - ${self:custom.frontendOrigin}
+        - http://localhost:5173
+      allowedHeaders:
+        - Content-Type
+      allowedMethods:
+        - GET
+        - POST
+        - PUT
+        - DELETE
+        - OPTIONS
+      maxAge: 3600
+
+custom:
+  tablaLibros: ${self:service}-libros-${sls:stage}
+  # URL HTTPS de CloudFront, leida de las salidas del stack infra/frontend-hosting.yml
+  frontendOrigin: ${cf:biblioteca-cloud-frontend-${sls:stage}.SiteUrl}
+  prefijoFuncion: ${self:service}-${sls:stage}
+
+package:
+  patterns:
+    - "!tests/**"
+    - "!postman/**"
+    - "!iam/**"
+    - "!monitoring/**"
+    - "!*.md"
+
+# Cada funcion tiene su propio rol IAM con UNICAMENTE la accion de DynamoDB que
+# necesita sobre la tabla del proyecto (minimo privilegio).
+functions:
+  crear:
+    handler: src/handler.crear
+    role: RolCrear
+    events:
+      - httpApi:
+          path: /libros
+          method: post
+
+  listar:
+    handler: src/handler.listar
+    role: RolListar
+    events:
+      - httpApi:
+          path: /libros
+          method: get
+
+  obtener:
+    handler: src/handler.obtener
+    role: RolObtener
+    events:
+      - httpApi:
+          path: /libros/{id}
+          method: get
+
+  actualizar:
+    handler: src/handler.actualizar
+    role: RolActualizar
+    events:
+      - httpApi:
+          path: /libros/{id}
+          method: put
+
+  eliminar:
+    handler: src/handler.eliminar
+    role: RolEliminar
+    events:
+      - httpApi:
+          path: /libros/{id}
+          method: delete
+
+resources:
+  # Limite de peticiones en la etapa de API Gateway para frenar abusos del
+  # API publico (proteccion de costos).
+  extensions:
+    HttpApiStage:
+      Properties:
+        DefaultRouteSettings:
+          ThrottlingBurstLimit: 20
+          ThrottlingRateLimit: 10
+
+  Resources:
+    LibrosTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.tablaLibros}
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        PointInTimeRecoverySpecification:
+          PointInTimeRecoveryEnabled: false
+        SSESpecification:
+          SSEEnabled: false
+        Tags:
+          - { Key: Proyecto, Value: biblioteca-cloud }
+
+    # ---------------- Roles IAM por funcion (minimo privilegio) ----------------
+    RolCrear:
+      Type: AWS::IAM::Role
+      Properties:
+        RoleName: ${self:custom.prefijoFuncion}-crear-rol
+        AssumeRolePolicyDocument: ${file(./iam/assume-lambda.yml)}
+        Policies:
+          - PolicyName: crear-libro
+            PolicyDocument:
+              Version: "2012-10-17"
+              Statement:
+                - Effect: Allow
+                  Action: dynamodb:PutItem
+                  Resource: !GetAtt LibrosTable.Arn
+                - Effect: Allow
+                  Action: [logs:CreateLogStream, logs:PutLogEvents]
+                  Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${self:custom.prefijoFuncion}-crear:*"
+
+    RolListar:
+      Type: AWS::IAM::Role
+      Properties:
+        RoleName: ${self:custom.prefijoFuncion}-listar-rol
+        AssumeRolePolicyDocument: ${file(./iam/assume-lambda.yml)}
+        Policies:
+          - PolicyName: listar-libros
+            PolicyDocument:
+              Version: "2012-10-17"
+              Statement:
+                - Effect: Allow
+                  Action: dynamodb:Scan
+                  Resource: !GetAtt LibrosTable.Arn
+                - Effect: Allow
+                  Action: [logs:CreateLogStream, logs:PutLogEvents]
+                  Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${self:custom.prefijoFuncion}-listar:*"
+
+    RolObtener:
+      Type: AWS::IAM::Role
+      Properties:
+        RoleName: ${self:custom.prefijoFuncion}-obtener-rol
+        AssumeRolePolicyDocument: ${file(./iam/assume-lambda.yml)}
+        Policies:
+          - PolicyName: obtener-libro
+            PolicyDocument:
+              Version: "2012-10-17"
+              Statement:
+                - Effect: Allow
+                  Action: dynamodb:GetItem
+                  Resource: !GetAtt LibrosTable.Arn
+                - Effect: Allow
+                  Action: [logs:CreateLogStream, logs:PutLogEvents]
+                  Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${self:custom.prefijoFuncion}-obtener:*"
+
+    RolActualizar:
+      Type: AWS::IAM::Role
+      Properties:
+        RoleName: ${self:custom.prefijoFuncion}-actualizar-rol
+        AssumeRolePolicyDocument: ${file(./iam/assume-lambda.yml)}
+        Policies:
+          - PolicyName: actualizar-libro
+            PolicyDocument:
+              Version: "2012-10-17"
+              Statement:
+                - Effect: Allow
+                  Action: dynamodb:UpdateItem
+                  Resource: !GetAtt LibrosTable.Arn
+                - Effect: Allow
+                  Action: [logs:CreateLogStream, logs:PutLogEvents]
+                  Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${self:custom.prefijoFuncion}-actualizar:*"
+
+    RolEliminar:
+      Type: AWS::IAM::Role
+      Properties:
+        RoleName: ${self:custom.prefijoFuncion}-eliminar-rol
+        AssumeRolePolicyDocument: ${file(./iam/assume-lambda.yml)}
+        Policies:
+          - PolicyName: eliminar-libro
+            PolicyDocument:
+              Version: "2012-10-17"
+              Statement:
+                - Effect: Allow
+                  Action: dynamodb:DeleteItem
+                  Resource: !GetAtt LibrosTable.Arn
+                - Effect: Allow
+                  Action: [logs:CreateLogStream, logs:PutLogEvents]
+                  Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${self:custom.prefijoFuncion}-eliminar:*"
+
+    # ---------------- Observabilidad ----------------
+    # Alarma sin acciones (no envia correos): queda visible en CloudWatch
+    # cuando la API devuelve errores 5xx.
+    AlarmaErrores5xx:
+      Type: AWS::CloudWatch::Alarm
+      Properties:
+        AlarmName: ${self:custom.prefijoFuncion}-api-5xx
+        AlarmDescription: La API de Biblioteca Cloud devolvio errores 5xx en los ultimos 5 minutos
+        Namespace: AWS/ApiGateway
+        MetricName: 5xx
+        Dimensions:
+          - Name: ApiId
+            Value: !Ref HttpApi
+          - Name: Stage
+            Value: $default
+        Statistic: Sum
+        Period: 300
+        EvaluationPeriods: 1
+        Threshold: 1
+        ComparisonOperator: GreaterThanOrEqualToThreshold
+        TreatMissingData: notBreaching
+
+    DashboardBiblioteca:
+      Type: AWS::CloudWatch::Dashboard
+      Properties:
+        DashboardName: ${self:custom.prefijoFuncion}
+        DashboardBody: ${file(./monitoring/dashboard.js):cuerpo}

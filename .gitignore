@@ -8,6 +8,7 @@ node_modules/
 # Variables de entorno y credenciales
 .env
 .env.*
+!.env.example
 .aws/
 credentials
 *.pem
@@ -27,8 +28,12 @@ Thumbs.db
 *.tmp
 *.zip
 
-# Documento de la guía del laboratorio (material del docente, no se publica)
+# Material del docente (no se publica)
 LABORATORIO 3.pdf
+PROYECTO*.pdf
+
+# Build del frontend
+frontend/dist/
 
 # Evidencias locales para el video/documento (no se publican en GitHub)
 evidencias/
